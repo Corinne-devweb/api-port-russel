@@ -1,0 +1,153 @@
+openapi: 3.0.0
+info:
+  title: API Capitainerie - Port de plaisance de Russell
+  version: 1.0.0
+  description: |
+    API privée pour la gestion des catways et réservations.
+    ### Consignes sécurité :
+    - Toutes les routes (sauf `/` et `/auth/login`) nécessitent un JWT valide
+    - Seul le rôle `capitainerie` peut modifier les catways
+
+servers:
+  - url: http://localhost:3000/api
+    description: Environnement de développement
+  - url: https://api.capitainerie-russell.com/api
+    description: Production
+
+tags:
+  - name: Authentification
+    description: Connexion/déconnexion
+  - name: Catways
+    description: Gestion des appontements
+  - name: Réservations
+    description: Gestion des réservations
+  - name: Utilisateurs
+    description: Gestion des comptes
+
+paths:
+  /:
+    get:
+      tags: [Root]
+      summary: Accueil API
+      responses:
+        200:
+          description: Message de bienvenue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIStatus"
+
+  /auth/login:
+    post:
+      tags: [Authentification]
+      summary: Connexion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@capitainerie.fr
+                password:
+                  type: string
+                  format: password
+                  example: MotDePasse123!
+      responses:
+        200:
+          description: JWT retourné
+          headers:
+            Authorization:
+              schema:
+                type: string
+              description: JWT token
+
+  /catways:
+    get:
+      tags: [Catways]
+      security:
+        - BearerAuth: []
+      summary: Lister tous les catways
+      responses:
+        200:
+          description: Liste des catways
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Catway"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    APIStatus:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "API Capitainerie"
+        version:
+          type: string
+          example: "1.0"
+        status:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "Bienvenue"
+
+    Catway:
+      type: object
+      properties:
+        catwayNumber:
+          type: integer
+          example: 1
+        catwayType:
+          type: string
+          enum: [long, short]
+          example: long
+        catwayState:
+          type: string
+          example: "Disponible"
+      required: [catwayNumber, catwayType]
+
+    Reservation:
+      type: object
+      properties:
+        catwayNumber:
+          type: integer
+          example: 1
+        clientName:
+          type: string
+          example: "Jean Dupont"
+        boatName:
+          type: string
+          example: "Sea Princess"
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+      required: [catwayNumber, clientName, startDate, endDate]
+
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, capitainerie]
+          default: user
+      required: [email]
